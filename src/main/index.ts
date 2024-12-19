@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, session, desktopCapturer } from 'el
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { spawn } from 'child_process'
 
 function createWindow(): void {
   // Create the browser window.
@@ -14,9 +15,9 @@ function createWindow(): void {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
-      contextIsolation: true,  // harus true untuk security
+      contextIsolation: true, // harus true untuk security
       webviewTag: true,
-      webSecurity : true
+      webSecurity: true
     }
   })
   session.defaultSession.setDisplayMediaRequestHandler((_, callback) => {
@@ -34,11 +35,7 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  session.defaultSession.setPermissionRequestHandler(function (
-    _: any,
-    permission: any,
-    callback
-  ) {
+  session.defaultSession.setPermissionRequestHandler(function (_: any, permission: any, callback) {
     if (permission === 'media') {
       callback(true) // Allow access to media devices
     } else {
@@ -59,13 +56,48 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  // let ffmpegProcess: any = null
+
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.on('start-stream', (event, streamData) => {
+    // ffmpegProcess = spawn('ffmpeg', [
+    //   '-y',
+    //   '-i',
+    //   '-',
+    //   '-c:v',
+    //   'libx264',
+    //   '-preset',
+    //   'veryfast',
+    //   '-tune',
+    //   'zerolatency',
+    //   '-b:v',
+    //   '3000k',
+    //   '-f',
+    //   'flv',
+    //   streamData.rtmpUrl // Stream URL from renderer
+    // ])
+
+    // ffmpegProcess.stderr.on('data', (data) => {
+    //   console.error(`FFmpeg stderr: ${data}`)
+    // })
+
+    // ffmpegProcess.on('close', (code) => {
+    //   console.log(`FFmpeg process exited with code ${code}`)
+    // })
+    console.log('HELLO')
+  })
+
+  // ipcMain.on('stop-stream', () => {
+  //   if (ffmpegProcess) {
+  //     ffmpegProcess.stdin.end()
+  //     ffmpegProcess.kill('SIGINT')
+  //   }
+  // })
 
   createWindow()
 
