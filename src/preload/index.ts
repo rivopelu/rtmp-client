@@ -9,11 +9,6 @@ const api = {}
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', {
-      getSources: async () => {
-        return await desktopCapturer.getSources({ types: ['screen', 'window'] })
-      }
-    })
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {

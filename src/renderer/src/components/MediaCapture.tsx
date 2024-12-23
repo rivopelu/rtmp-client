@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 
 export function MediaCapture() {
-  const [errorMessage, setErrorMessage] = useState<string>('')
+  const [errorMessage] = useState<string>('')
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false)
   const videoRef = useRef<any>(null)
   const mediaRecorderRef = useRef<any>(null)
@@ -11,7 +11,6 @@ export function MediaCapture() {
 
   const startLiveStream = async () => {
     try {
-      // Step 1: Capture the screen
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           width: { ideal: 1080 },
@@ -20,66 +19,42 @@ export function MediaCapture() {
         }
       })
 
-      // Attach the stream to the video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream
       }
 
-      // Step 2: Stream to RTMP using FFmpeg
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm; codecs=vp8'
+      })
 
-      // ffmpeg.stderr.on('data', (data) => {
-      //   console.error(`FFmpeg stderr: ${data}`)
-      // })
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          const blob = event.data
+          // const buffer = await blob.arrayBuffer()
+          // console.log(buffer)
+          sendToServer(blob)
+        }
+      }
 
-      // ffmpeg.on('close', (code) => {
-      //   console.log(`FFmpeg process exited with code ${code}`)
-      // })
+      mediaRecorder.start(1000) // Kirim setiap detik
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' })
-
-      // mediaRecorder.ondataavailable = (event) => {
-      //   if (event.data && event.data.size > 0) {
-      //     ffmpeg.stdin.write(event.data)
-      //   }
-      // }
-
-      mediaRecorder.start(100) // Send data every 100ms
+      setIsCameraActive(true)
     } catch (error) {
       console.error('Error starting live stream:', error)
     }
   }
 
-  const startCamera = async () => {
-    ipcLiveTest()
+  const sendToServer = async (chunk) => {
+    const formData = new FormData()
+    formData.append('video', chunk)
+
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
-        },
-        audio: true
+      await fetch('http://localhost:3000/test', {
+        method: 'POST',
+        body: formData
       })
-
-      // Attach the camera feed to the video element
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
-      setIsCameraActive(true)
-
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm'
-      })
-
-      mediaRecorderRef.current = mediaRecorder
-
-      // Collect video data
-      mediaRecorder.ondataavailable = (e) => {
-        chunks.current.push(e.data)
-      }
-    } catch (error: any) {
-      console.error(error)
-      setErrorMessage('Error accessing camera: ' + error?.message)
+    } catch (error) {
+      console.error('Error sending video chunk:', error)
     }
   }
 
@@ -88,10 +63,7 @@ export function MediaCapture() {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop())
     }
-    // if (ffmpeg) {
-    //   ffmpeg.stdin.end() // Close the input stream
-    //   ffmpeg.kill('SIGINT') // Send the signal to stop the process
-    // }
+
     setIsCameraActive(false)
   }
 
@@ -104,7 +76,7 @@ export function MediaCapture() {
         {isCameraActive ? (
           <button onClick={stopCamera}>Stop Camera</button>
         ) : (
-          <button onClick={ipcLiveTest}>Start Camera</button>
+          <button onClick={startLiveStream}>Start Camera</button>
         )}
       </div>
     </div>

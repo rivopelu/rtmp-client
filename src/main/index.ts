@@ -1,8 +1,8 @@
-import { app, shell, BrowserWindow, ipcMain, session, desktopCapturer } from 'electron'
+import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import { app, BrowserWindow, desktopCapturer, ipcMain, session, shell } from 'electron'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { spawn } from 'child_process'
+// import './server'
 
 function createWindow(): void {
   // Create the browser window.
@@ -22,7 +22,6 @@ function createWindow(): void {
   })
   session.defaultSession.setDisplayMediaRequestHandler((_, callback) => {
     desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
-      // Grant access to the first screen found.
       callback({ video: sources[0], audio: 'loopback' })
     })
   })
@@ -43,8 +42,6 @@ function createWindow(): void {
     }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -64,7 +61,7 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
-  ipcMain.on('start-stream', (event, streamData) => {
+  ipcMain.on('start-stream', () => {
     // ffmpegProcess = spawn('ffmpeg', [
     //   '-y',
     //   '-i',
